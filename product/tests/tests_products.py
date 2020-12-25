@@ -1,9 +1,19 @@
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
 from product.models import Product
 from rest_framework import status
 from rest_framework.reverse import reverse
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def test_image():
+    return SimpleUploadedFile(
+        name="product/tests/second_test_product_image.png",
+        content=bytes("test_content", "utf-8"),
+        content_type="image/png",
+    )
 
 
 def test_products_list(client):
@@ -76,3 +86,52 @@ def test_product_delete(client):
     response = client.delete(reverse("product-detail", args=[product.id]))
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert Product.objects.count() == product_before - 1
+
+
+# def test_product_update(client, test_image):
+#     product = Product.objects.create(
+#         name="test_name",
+#         desription="test_desription",
+#         number=1,
+#         image="product/tests/test_product_image.png",
+#     )
+#     product_before = Product.objects.count()
+#     put_data = {
+#         "name": "second_test_name",
+#         "desription": "second_test_test_desription",
+#         "number": 2,
+#         "image": test_image,
+#     }
+#     response = client.put(
+#         reverse("product-detail", args=[product.id]),
+#         put_data=put_data,
+#         content_type="multipart/form-data",
+#     )
+#     assert response.status_code == status.HTTP_200_OK
+#     assert Product.objects.count() == product_before
+#     product.refresh_from_db()
+#     # TODO: check updated image
+#     # assert test_image.name in product.image.url
+
+
+def test_product_partitial_update(client, test_image):
+    product = Product.objects.create(
+        name="test_name",
+        desription="test_desription",
+        number=1,
+        image="product/tests/test_product_image.png",
+    )
+    product_before = Product.objects.count()
+    patch_data = {
+        "image": test_image,
+    }
+    response = client.patch(
+        reverse("product-detail", args=[product.id]),
+        patch_data=patch_data,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert Product.objects.count() == product_before
+    product.refresh_from_db()
+    # TODO: check updated image
+    # assert test_image.name in product.image.url
